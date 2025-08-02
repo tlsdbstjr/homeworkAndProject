@@ -120,12 +120,11 @@ double evalInterpole(int fileNum)
 
 	//compute Sum of error
 	int SE = 0;
-	int maxSig = -1;	// the maximum of signal
+	int maxSig = 255;	// the maximum of signal
 	for (int i = 0; i < 512; i++)
 		for (int j = 0; j < 512; j++)
 		{
 			SE += (gtImg[i][j] - procImg[i][j]) * (gtImg[i][j] - procImg[i][j]);
-			if (procImg[i][j] > maxSig) maxSig = procImg[i][j];
 		}
 	double MSE = (double)SE / (512 * 512);
 	double PSNR = 20 * log10(maxSig) - 10 * log10(MSE);
