@@ -29,21 +29,21 @@ uC/OS-II에서는 숫자가 작은 우선순위가 먼저 실행됩니다. 계�
 
 ## Calculation Model
 
-기어비 (g_k), 가속 페달 입력 (a), 브레이크 입력 (b)에 대해 코드의 계산은 다음 형태입니다.
+기어비 $g_k$, 가속 페달 입력 $a$, 브레이크 입력 $b$에 대해 코드의 계산은 다음 형태입니다.
 
 $$
-v = \mathrm{rpm}\cdot g_k
-$$
-
-$$
-\mathrm{rpm}_{t+1}=\mathrm{rpm}_t+(5-k)\cdot a\cdot3-\left(\operatorname{round}(e^{\mathrm{rpm}_t/1000})+g_k\right)
+v_t = rpm_t \cdot g_k
 $$
 
 $$
-v_{t+1}=\max(0, v_t-b), \qquad \mathrm{rpm}=\frac{v}{g_k}
+rpm_{t+1}=rpm_t+3(5-k)a-round(e^{rpm_t/1000})-g_k
 $$
 
-자동 변속은 페달 입력별 RPM 상한과 1,000 RPM 하한을 기준으로 동작하고, 수동 모드에서는 변속 후 RPM 범위를 확인합니다.
+$$
+v_{t+1}=v_t-b, \quad rpm_{t+1}=\frac{v_{t+1}}{g_k}
+$$
+
+속도 계산 후 음수는 0으로, RPM은 최소 600으로 제한합니다. 자동 변속은 페달 입력별 RPM 상한과 1,000 RPM 하한을 기준으로 동작하고, 수동 모드에서는 변속 후 RPM 범위를 확인합니다.
 
 ## Event Handling
 

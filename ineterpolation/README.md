@@ -22,12 +22,12 @@ Barbara 영상에 네 방법을 순서대로 적용한 보고서 결과입니다
 확대 배율이 4일 때 원본 픽셀을 가장 가까운 4×4 출력 영역에 복제합니다.
 
 $$
-\hat I(4i+r,4j+s)=I(i,j), \qquad r,s\in\{0,1,2,3\}
+\hat I(4i+r,4j+s)=I(i,j), \quad r,s\in\{0,1,2,3\}
 $$
 
 ### Bilinear Interpolation
 
-두 축에서 선형 보간을 차례로 수행합니다. 정규화 좌표 (u,v\in[0,1])에 대해 출력은 네 이웃의 가중합입니다.
+두 축에서 선형 보간을 차례로 수행합니다. 정규화 좌표 $u,v\in[0,1]$에 대해 출력은 네 이웃의 가중합입니다.
 
 $$
 \hat I(u,v)=(1-u)(1-v)I_{00}+u(1-v)I_{10}+(1-u)vI_{01}+uvI_{11}
@@ -38,8 +38,13 @@ $$
 축마다 네 점을 사용해 3차 Lagrange 다항식을 계산하고, 행 방향 보간 후 열 방향 보간을 수행합니다.
 
 $$
-p(x)=\sum_{k=0}^{3}y_kL_k(x), \qquad
-L_k(x)=\prod_{\substack{m=0\\m\ne k}}^{3}\frac{x-x_m}{x_k-x_m}
+p(x)=\sum_{k=0}^{3}y_kL_k(x)
+$$
+
+각 기저 다항식은 네 점 중 $k$번째 점을 제외한 나머지 점으로 계산합니다.
+
+$$
+L_k(x)=\prod_{m\ne k}\frac{x-x_m}{x_k-x_m}
 $$
 
 계산값이 8-bit 범위를 벗어나면 0~255로 clipping합니다.
@@ -57,7 +62,7 @@ $$
 ## PSNR Results
 
 $$
-\operatorname{PSNR}=10\log_{10}\left(\frac{255^2}{\operatorname{MSE}}\right)
+PSNR=10\log_{10}\frac{255^2}{MSE}
 $$
 
 | 영상 | Nearest neighbor | Bilinear | Bicubic | Six-tap |

@@ -11,13 +11,13 @@
 
 ## Problem
 
-입력 (x[n])과 길이 6인 filter (h[k])에 대해 다음 합성곱을 계산합니다.
+입력 $x[n]$과 길이 6인 filter $h[k]$에 대해 다음 합성곱을 계산합니다.
 
 $$
-y[n]=\sum_{k=0}^{5}h[k]x[n-k], \qquad 5\le n\le479
+y[n]=\sum_{k=0}^{5}h[k]x[n-k], \quad 5\le n\le479
 $$
 
-filter는 `[1.95, 1.72, -0.431, -1.278, -0.8022, -0.2115]`이며, (y[n]\le-4.7)인 결과와 index를 메모리 `0xF0000000`부터 저장합니다.
+filter는 `[1.95, 1.72, -0.431, -1.278, -0.8022, -0.2115]`이며, $y[n]\le-4.7$인 결과와 index를 메모리 `0xF0000000`부터 저장합니다.
 
 ## Implementation
 
@@ -26,10 +26,10 @@ filter는 `[1.95, 1.72, -0.431, -1.278, -0.8022, -0.2115]`이며, (y[n]\le-4.7)�
 - main loop: 6개 filter 계수와 입력 구간을 곱해 누산하고 threshold와 비교
 - result writer: 조건을 통과한 값과 index를 stack에 모은 뒤 지정 메모리 영역에 각각 기록
 
-단정도 수 (x)는 다음 형태로 분해해 처리했습니다.
+단정도 수 $x$는 다음 형태로 분해해 처리했습니다.
 
 $$
-x=(-1)^s\times(1.f)_2\times2^{e-127}
+x=(-1)^s(1.f)_2 2^{e-127}
 $$
 
 ![Keil debugger after program execution](./img/debug-session.png)

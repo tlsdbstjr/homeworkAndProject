@@ -26,32 +26,32 @@ $$
 A(i,j)=R_V(i,j)^2+R_H(i,j)^2
 $$
 
-활동성 (A)는 Lloyd-Max 양자화를 100회 반복해 5단계로 나누고, 방향은 무방향·수직·수평·두 대각선의 5개 범주로 구분합니다. 따라서 최대 25개 픽셀 그룹을 만들며, 표본 수가 7×7 필터 계수보다 적은 그룹은 인접 활동성 그룹과 합칩니다.
+활동성 $A$는 Lloyd-Max 양자화를 100회 반복해 5단계로 나누고, 방향은 무방향·수직·수평·두 대각선의 5개 범주로 구분합니다. 따라서 최대 25개 픽셀 그룹을 만들며, 표본 수가 7×7 필터 계수보다 적은 그룹은 인접 활동성 그룹과 합칩니다.
 
 ### 2. Least-squares Filter Estimation
 
-한 그룹의 7×7 이웃 픽셀을 행으로 쌓은 행렬을 (X\in\mathbb{R}^{N\times49}), 대응하는 ground-truth sub-pixel 값을 (Y)라고 두면 필터 (F)는 다음 손실을 최소화합니다.
+한 그룹의 7×7 이웃 픽셀을 행으로 쌓은 $N\times49$ 행렬을 $X$, 대응하는 ground-truth sub-pixel 값을 $Y$라고 둡니다. 필터 $F$는 다음 손실을 최소화하도록 계산합니다.
 
 $$
-F^*=\underset{F}{\operatorname{argmin}}\;\lVert Y-XF\rVert_2^2
+L(F)=(Y-XF)^T(Y-XF)
 $$
 
 정규방정식은 다음과 같습니다.
 
 $$
-X^T X F=X^T Y, \qquad F=(X^TX)^{-1}X^TY
+X^T X F=X^T Y, \quad F=(X^TX)^{-1}X^TY
 $$
 
-코드에서는 (X^TX)와 (X^TY)를 누적하고 Gauss-Jordan 소거법으로 49개 계수를 계산합니다. 원래 위치의 픽셀을 제외한 가로·세로·대각 sub-pixel 위치마다 필터를 하나씩 생성합니다.
+코드에서는 $X^TX$와 $X^TY$를 누적하고 Gauss-Jordan 소거법으로 49개 계수를 계산합니다. 원래 위치의 픽셀을 제외한 가로·세로·대각 sub-pixel 위치마다 필터를 하나씩 생성합니다.
 
 ### 3. Evaluation
 
 $$
-\operatorname{MSE}=\frac{1}{MN}\sum_{i=1}^{M}\sum_{j=1}^{N}(I_{ij}-\hat I_{ij})^2
+MSE=\frac{1}{MN}\sum_{i=1}^{M}\sum_{j=1}^{N}(I_{ij}-\hat I_{ij})^2
 $$
 
 $$
-\operatorname{PSNR}=10\log_{10}\left(\frac{255^2}{\operatorname{MSE}}\right)
+PSNR=10\log_{10}\frac{255^2}{MSE}
 $$
 
 ## Reported Results
