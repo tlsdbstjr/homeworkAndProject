@@ -1,61 +1,77 @@
-# introduce
+# ZYNQ-Jetson Nano SPI Communication
 
-이 프로젝트는 23학년도 마이크로프로세서 아키텍처 실습 과목의 개인 프로젝트로 진행하게 되었습니다.
+ZYNQ 보드에서 읽은 조이스틱 데이터를 SPI로 Jetson Nano에 전달하고, Nano가 만든 제어 신호로 보드 LED·조이스틱 LED·7-segment를 구동한 개인 프로젝트입니다.
 
-ZYNQ FPGA 스타터 보드를 활용하여 조이스틱의 입력 신호를 AXI 버스를 통해 읽어들이고, SPI 버스로 연결된 Nano 보드로 전달합니다. Nano 보드는 해당 데이터를 처리하여 다시 ZYNQ 보드로 제어 신호를 반환하고, ZYNQ 보드는 이를 바탕으로 보드 내 LED와 조이스틱 LED를 제어합니다. 또한 Nano 보드는 SPI 버스로 연결된 7-세그먼트 디스플레이에 조이스틱의 X/Y 좌표를 실시간으로 출력합니다.
+| 항목 | 내용 |
+| --- | --- |
+| 수업 | 2023학년도 마이크로프로세서 아키텍처 실습 |
+| 담당 범위 | AXI 주소 연결, ZYNQ 펌웨어, Nano 제어 프로그램, `spidev` 수정, 통합 테스트 |
+| 환경 | ZYNQ starter board, Jetson Nano, Pmod JSTK2, 7-segment |
+| 기술 | AXI, SPI, GPIO, C, Python, Linux device driver |
 
-## 특징과 결론
+## System Overview
 
-* 특징
+![Vivado block design](./img/system-architecture.png)
 
-  * SPI 버스를 활용하는 peripheral간의 통신 구조를 구현하였습니다.
-  * 하드웨어 설계 오류(비트 반전, CE 신호 무시)를 펌웨어, 운영체제, 소프트웨어 계층에서 단계적으로 해결하는 경험을 하였습니다.
-  * Linux 커널 디바이스 드라이버를 직접 수정하여 하드웨어 버그를 드라이버 레벨에서 보정하였습니다.
-* 결론
+1. ZYNQ가 AXI를 통해 조이스틱의 X/Y 좌표와 버튼 상태를 읽습니다.
+2. ZYNQ가 32-bit 데이터를 SPI로 Nano에 전달합니다.
+3. Nano가 방향·버튼을 판별하고 LED 제어 프레임을 ZYNQ에 돌려보냅니다.
+4. Nano는 별도 SPI 채널의 7-segment에 X/Y 좌표를 출력합니다.
 
-  * FPGA 기반 시스템에서 하드웨어-소프트웨어 간 인터페이스를 설계하는 방법을 익혔고, 커널 드라이버 수정을 통해 OS 계층에서의 하드웨어 버그 대응 방법을 배웠습니다. 추후 실무에서 임베디드 시스템의 디바이스 드라이버를 다룰 때 적용하겠습니다.
+### AXI Address Map
 
-# 시스템 구조 및 통신 설계
+| 모듈 | 주소 |
+| --- | --- |
+| Nano 연결 SPI slave | `0x43C0_0000` |
+| Pmod JSTK2 | `0x43C1_0000` |
+| AXI GPIO | `0x4120_0000` |
 
-## 시스템 구조
+## What I Implemented
 
-![system structure](./img/system.jpg)
+- `helloworld.c`: 조이스틱 데이터를 Nano로 전달하고, 반환된 프레임을 LED 출력으로 변환하는 ZYNQ 펌웨어
+- `ddrv_jstk.py`: `spidev`로 두 SPI 채널을 제어하고 좌표·버튼을 LED 및 7-segment 데이터로 변환하는 Nano 프로그램
+- `spidev.c`: 수신 데이터 반전 문제를 보정하도록 수정한 Linux SPI character driver
+- Vivado block design과 address map을 구성하고 실제 보드에서 방향·버튼·표시 장치 동작을 확인
 
-## AXI 주소 맵
+## Problem Solving
 
-|모듈|주소|
-|-|-|
-|조이스틱 (PmodJSTK2A)|`0x43C1_0000`|
-|Nano 보드 (SPI Slave)|`0x43C0_0000`|
-|AXI GPIO (LED)|`0x4120_0000`|
+### Inverted RX Data
 
-## 통신 흐름
-
-1. ZYNQ 보드는 AXI 버스를 통해 조이스틱으로부터 X/Y 좌표와 버튼 상태를 읽어 SPI 버스를 통해 Nano 보드로 전달합니다.
-2. Nano 보드는 이를 가공하여 방향 판단 및 LED 제어 신호를 생성합니다.
-3. Nano 보드에서 생성된 신호를 SPI신호를 통해 ZYNQ 보드와 7-segment로 보냅니다.
-4. ZYNQ 보드는 수신한 제어 신호를 바탕으로 보드 LED와 조이스틱 LED를 구동합니다.
-
-# 문제 해결
-
-## 비트 반전 문제
-
-조이스틱으로부터 읽어온 데이터가 FPGA SPI 슬레이브 모듈의 설계 오류로 인해 모든 비트가 반전된 채 수신되었습니다. HDL 수정 없이 해결하기 위해 Linux 커널 `spidev` 드라이버의 `spidev_read()` 함수를 수정하여, `copy_to_user` 수행 전 수신 버퍼의 각 바이트를 비트 반전하도록 처리하였습니다.
+FPGA 측 SPI slave에서 모든 수신 비트가 반전되었습니다. HDL을 수정하지 않는 조건에서 `spidev_read()`가 user space로 복사하기 전에 각 바이트를 다시 반전하도록 처리했습니다.
 
 ```c
 for (i = 0; i < status; i++)
     spidev->rx_buffer[i] = ~(spidev->rx_buffer[i]);
 ```
 
-수정된 드라이버 모듈을 다시 컴파일하여 커널에 적재함으로써 드라이버 계층에서 비트 반전을 보정하였습니다.
+### Ignored Chip Enable
 
-## CE 신호 무시 문제
-
-FPGA SPI 슬레이브 모듈이 CE(Chip Enable) 신호와 무관하게 모든 SPI 트래픽을 수신하는 문제가 있었습니다. 이로 인해 Nano 보드가 7-세그먼트로 보내는 데이터를 ZYNQ 보드가 함께 수신하여 LED 제어 신호가 오염되는 현상이 발생하였습니다.
-
-이를 해결하기 위해 Nano 보드가 ZYNQ로 전송하는 데이터의 상위 16비트에 `0xFFFF` 센티넬 값을 삽입하고, ZYNQ 펌웨어에서 해당 값이 없는 프레임은 무시하도록 처리하였습니다. 7-세그먼트로 전송되는 데이터는 각 바이트가 0~9 사이의 값이므로 `0xFF`가 등장할 수 없어 충돌 없이 구분이 가능합니다.
+SPI slave가 CE 상태와 관계없이 다른 장치용 트래픽까지 읽어 LED 데이터가 섞였습니다. Nano→ZYNQ 프레임의 상위 16 bit를 `0xFFFF`로 고정하고, ZYNQ에서는 이 값이 없는 프레임을 버리도록 구분했습니다.
 
 ```c
-if ((var & 0xFFFF0000) != 0xFFFF0000) continue;
+if ((var & 0xFFFF0000) != 0xFFFF0000)
+    continue;
 ```
+
+7-segment 데이터는 각 자리의 0~9만 사용하므로 이 sentinel과 겹치지 않습니다.
+
+## Verification
+
+![Hardware setup](./img/hardware-setup.jpg)
+
+- 조이스틱 상·하·좌·우 이동에 따라 좌표 로그와 ZYNQ LED가 변하는 것을 확인했습니다.
+- 두 버튼 입력에 따라 버튼 비트와 LED 출력이 바뀌는 것을 확인했습니다.
+- 7-segment에 X/Y 좌표의 십 단위 값을 4자리로 출력했습니다.
+- 조이스틱 LED의 주기적 점멸을 확인했습니다.
+
+## Files and Reproduction Notes
+
+| 경로 | 설명 |
+| --- | --- |
+| [`source/helloworld.c`](./source/helloworld.c) | Xilinx SDK용 ZYNQ application |
+| [`source/ddrv_jstk.py`](./source/ddrv_jstk.py) | Nano의 Python SPI application |
+| [`source/spidev.c`](./source/spidev.c) | 비트 반전을 보정한 driver source |
+| [`2019202053_신윤석_Lab14.pdf`](./2019202053_신윤석_Lab14.pdf) | 회로 구성과 실기 검증을 기록한 보고서 |
+
+저장소에는 최종 Vivado hardware project와 bitstream이 포함되어 있지 않습니다. 동일 환경에서 다시 실행하려면 보고서의 block design·pin constraint를 바탕으로 hardware를 구성하고, Nano에 `python3-spidev`를 준비한 뒤 각 source를 해당 보드에 배포해야 합니다.
 
